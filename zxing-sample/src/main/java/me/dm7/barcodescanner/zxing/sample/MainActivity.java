@@ -20,6 +20,8 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(state);
         setContentView(R.layout.activity_main);
         setupToolbar();
+        launchActivity(FullScannerFragmentActivity.class);
+
     }
 
     public void setupToolbar() {

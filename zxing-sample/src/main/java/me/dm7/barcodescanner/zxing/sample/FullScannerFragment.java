@@ -152,6 +152,8 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
     }
 
     public void showMessageDialog(String message) {
+        //TODO:  app 自動背景連該url , 並出現一個 msgbox 顯示該頁面一段文字
+
         DialogFragment fragment = MessageDialogFragment.newInstance("Scan Results", message, this);
         fragment.show(getActivity().getSupportFragmentManager(), "scan_results");
     }
