@@ -1,9 +1,14 @@
 package me.dm7.barcodescanner.zxing.sample;
 
+//import android.content.Intent;
+//import android.os.AsyncTask;
+import android.os.Bundle;
+
 import android.media.Ringtone;
 import android.media.RingtoneManager;
 import android.net.Uri;
-import android.os.Bundle;
+//import android.os.Bundle;
+
 import android.support.v4.app.DialogFragment;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentManager;
@@ -14,6 +19,8 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
+import android.widget.ProgressBar;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.Result;
@@ -22,6 +29,23 @@ import java.util.ArrayList;
 import java.util.List;
 
 import me.dm7.barcodescanner.zxing.ZXingScannerView;
+
+import com.squareup.okhttp.Callback;
+import com.squareup.okhttp.Headers;
+//import com.squareup.okhttp.MediaType;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+//import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
+import java.io.IOException;
+
+import java.security.cert.CertificateException;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 public class FullScannerFragment extends Fragment implements MessageDialogFragment.MessageDialogListener,
         ZXingScannerView.ResultHandler, FormatSelectorDialogFragment.FormatSelectorDialogListener,
@@ -35,6 +59,14 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
     private boolean mAutoFocus;
     private ArrayList<Integer> mSelectedIndices;
     private int mCameraId = -1;
+
+    //private RadioButton radioHeader;
+    //private RadioButton radioBody;
+    private ProgressBar progressBar;
+    //private TextView textResult;
+
+    private String dataHeader;
+    private String dataBody;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle state) {
@@ -51,6 +83,8 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
             mCameraId = -1;
         }
         setupFormats();
+
+
         return mScannerView;
     }
 
@@ -59,7 +93,17 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
         super.onCreate(state);
         setHasOptionsMenu(true);
     }
+    @Override
 
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
+        progressBar = (ProgressBar) getActivity().findViewById(R.id.progressBar);
+
+        progressBar.setVisibility(View.GONE);
+
+//        callASyncGet("");
+
+    }
     public void onCreateOptionsMenu (Menu menu, MenuInflater inflater) {
         super.onCreateOptionsMenu(menu, inflater);
 
@@ -148,14 +192,19 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
             Ringtone r = RingtoneManager.getRingtone(getActivity().getApplicationContext(), notification);
             r.play();
         } catch (Exception e) {}
-        showMessageDialog("Contents = " + rawResult.getText() + ", Format = " + rawResult.getBarcodeFormat().toString());
+//        showMessageDialog("Contents = " + rawResult.getText() + ", Format = " + rawResult.getBarcodeFormat().toString());
+        Toast.makeText(getActivity(), "Contents = " + rawResult.getText() + ", Format = " + rawResult.getBarcodeFormat().toString(), Toast.LENGTH_SHORT).show();
+
+        showMessageDialog(  rawResult.getText() );
+
     }
 
     public void showMessageDialog(String message) {
         //TODO:  app 自動背景連該url , 並出現一個 msgbox 顯示該頁面一段文字
 
-        DialogFragment fragment = MessageDialogFragment.newInstance("Scan Results", message, this);
-        fragment.show(getActivity().getSupportFragmentManager(), "scan_results");
+        callASyncGet(message);   // Asynchronous Get
+        //DialogFragment fragment = MessageDialogFragment.newInstance("Scan Results", message, this);
+        //fragment.show(getActivity().getSupportFragmentManager(), "scan_results");
     }
 
     public void closeMessageDialog() {
@@ -218,4 +267,125 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
         closeMessageDialog();
         closeFormatsDialog();
     }
+
+    private void getResponseData(Response response) {
+        Headers headers = response.headers();
+        for (String header : headers.names()) {
+            dataHeader += "name : " + header + "\n+ value : " + headers.get(header) + "\n";
+        }
+
+        try {
+            dataBody = response.body().string();
+        } catch (IOException e) {
+            e.printStackTrace();
+            dataBody = "Error !\n\n" + e.getMessage();
+        }
+    }
+//
+    private void resetView() {
+        progressBar.setVisibility(View.VISIBLE);
+
+        dataHeader = "";
+        dataBody   = "";
+    }
+
+    private void showView() {
+        //radioHeader.setEnabled(true);
+        //radioBody.setEnabled(true);
+        //radioBody.setChecked(true);
+        progressBar.setVisibility(View.GONE);
+        //textResult.setVisibility(View.VISIBLE);
+
+        DialogFragment fragment = MessageDialogFragment.newInstance("Scan Results", dataBody, this);
+        fragment.show(getActivity().getSupportFragmentManager(), "scan_results");
+    }
+
+    public static OkHttpClient getUnsafeOkHttpClient() {
+        try {
+            final TrustManager[] trustAllCerts = new TrustManager[] {
+                    new X509TrustManager() {
+                        @Override
+                        public void checkClientTrusted(java.security.cert.X509Certificate[] chain,
+                                                       String authType) throws CertificateException {
+                        }
+
+
+                        @Override
+                        public void checkServerTrusted(java.security.cert.X509Certificate[] chain,
+                                                       String authType) throws CertificateException {
+                        }
+
+
+                        @Override
+                        public java.security.cert.X509Certificate[] getAcceptedIssuers() {
+                            return new java.security.cert.X509Certificate[0];
+                        }
+                    }
+            };
+
+            final SSLContext sslContext = SSLContext.getInstance("SSL");
+            sslContext.init(null, trustAllCerts, new java.security.SecureRandom());
+            final SSLSocketFactory sslSocketFactory = sslContext.getSocketFactory();
+
+            OkHttpClient okHttpClient = new OkHttpClient();
+            okHttpClient.setSslSocketFactory(sslSocketFactory);
+            okHttpClient.setHostnameVerifier(new HostnameVerifier() {
+                @Override public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            });
+
+            return okHttpClient;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void callASyncGet(String message) {
+        String sUrl;
+
+        if(message.isEmpty())
+            sUrl = "https://emma07.cmes.com.tw/p/qrcode/UVJDb2RlLjVhYzFmZjdlNDdkY2Y=";
+        else
+            sUrl= message;
+
+        resetView();
+
+
+        OkHttpClient okHttpClient = getUnsafeOkHttpClient();//new OkHttpClient();
+
+        Request.Builder builder = new Request.Builder();
+
+        Request request = builder.url(sUrl).build();
+
+        okHttpClient.newCall(request).enqueue(new Callback() {
+            @Override
+            public void onFailure(Request request, IOException e) {
+                dataBody = "Error\n" + e.getMessage();
+
+                updateView();
+            }
+
+            @Override
+            public void onResponse(Response response) {
+                if (response.isSuccessful()) {
+                    getResponseData(response);
+                } else {
+                    dataBody = "Not Success\ncode : " + response.code();
+                }
+
+                updateView();
+            }
+
+            public void updateView() {
+                getActivity().runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        showView();
+                    }
+                });
+            }
+        });
+    }
+
 }
