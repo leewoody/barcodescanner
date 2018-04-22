@@ -1,4 +1,4 @@
-package me.dm7.barcodescanner.zxing.sample;
+package com.eimhub.barcodescanner.zxing.sample;
 
 import android.content.Context;
 import android.graphics.Canvas;

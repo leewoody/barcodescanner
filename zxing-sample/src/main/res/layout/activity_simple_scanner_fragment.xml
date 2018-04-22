@@ -6,7 +6,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <fragment android:name="me.dm7.barcodescanner.zxing.sample.SimpleScannerFragment"
+    <fragment android:name="com.eimhub.barcodescanner.zxing.sample.SimpleScannerFragment"
           android:id="@+id/scanner_fragment"
           android:layout_weight="1"
           android:layout_width="match_parent"
