@@ -21,6 +21,9 @@ allprojects {
         maven {
             url 'https://oss.sonatype.org/content/groups/public'
         }
+        // The order in which you list these repositories matter.
+        google()
+        jcenter()
     }
 
     ext {

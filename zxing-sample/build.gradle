@@ -11,6 +11,9 @@ dependencies {
 }
 
 android {
+    lintOptions {
+        checkReleaseBuilds false
+    }
     defaultConfig {
         applicationId "${project.group}.zxing.sample"
     }
