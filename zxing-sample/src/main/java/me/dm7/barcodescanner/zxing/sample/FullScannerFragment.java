@@ -21,10 +21,13 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Toast;
 import android.widget.ProgressBar;
+import android.util.Patterns;
+import android.webkit.URLUtil;
 
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.Result;
 
+import java.net.MalformedURLException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,8 +41,11 @@ import com.squareup.okhttp.Request;
 //import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 import java.io.IOException;
+import java.net.URL;
 
 import java.security.cert.CertificateException;
+import java.util.regex.Pattern;
+
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
@@ -199,13 +205,37 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
 
     }
 
-    public void showMessageDialog(String message) {
-        //TODO:  app 自動背景連該url , 並出現一個 msgbox 顯示該頁面一段文字
+    private boolean isValid(String urlString)
+    {
+        try
+        {
+            URL url = new URL(urlString);
+            return URLUtil.isValidUrl(urlString) && Patterns.WEB_URL.matcher(urlString).matches();
+        }
+        catch (MalformedURLException e)
+        {
 
-        callASyncGet(message);   // Asynchronous Get
-        //DialogFragment fragment = MessageDialogFragment.newInstance("Scan Results", message, this);
-        //fragment.show(getActivity().getSupportFragmentManager(), "scan_results");
+        }
+
+        return false;
     }
+
+    public void showMessageDialog(String message) {
+
+        //app 自動背景連該url , 並出現一個 msgbox 顯示該頁面一段文字
+        //Pattern URL_PATTERN = Patterns.WEB_URL;
+        //boolean isURL = URL_PATTERN.matcher(message).matches();
+        if (isValid(message)) {
+
+            callASyncGet(message);   // Asynchronous Get
+
+        }else {
+
+            DialogFragment fragment = MessageDialogFragment.newInstance("Scan Results", message, this);
+            fragment.show(getActivity().getSupportFragmentManager(), "scan_results");
+        }
+    }
+
 
     public void closeMessageDialog() {
         closeDialog("scan_results");
@@ -350,7 +380,6 @@ public class FullScannerFragment extends Fragment implements MessageDialogFragme
             sUrl= message;
 
         resetView();
-
 
         OkHttpClient okHttpClient = getUnsafeOkHttpClient();//new OkHttpClient();
 
